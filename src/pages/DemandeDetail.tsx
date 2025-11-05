@@ -6,11 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockDemandes } from "@/data/mockDemandes";
 import { DemandeStatus } from "@/types/credit";
 import { ArrowLeft, Mail, Phone, Calendar, Clock, Target, FileText, Save, FileCheck, FileSignature, RefreshCw, History } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 const statusConfig: Record<DemandeStatus, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -31,10 +30,57 @@ const creditTypeLabels = {
 const DemandeDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const demande = mockDemandes.find(d => d.id === id);
-  const [notes, setNotes] = useState(demande?.internalNotes || "");
+  const [demande, setDemande] = useState<any>(null);
+  const [statusHistory, setStatusHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notes, setNotes] = useState("");
   const [newStatus, setNewStatus] = useState<DemandeStatus | "">("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (id) {
+      fetchDemande();
+    }
+  }, [id]);
+
+  const fetchDemande = async () => {
+    try {
+      const { data: demandeData, error: demandeError } = await supabase
+        .from("demandes")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (demandeError) throw demandeError;
+      
+      setDemande(demandeData);
+      setNotes(demandeData.internal_notes || "");
+
+      const { data: historyData, error: historyError } = await supabase
+        .from("demandes_status_history")
+        .select("*")
+        .eq("demande_id", id)
+        .order("created_at", { ascending: false });
+
+      if (historyError) throw historyError;
+      setStatusHistory(historyData || []);
+    } catch (error: any) {
+      console.error("Error fetching demande:", error);
+      toast.error("Erreur lors du chargement de la demande");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Chargement...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (!demande) {
     return (
@@ -76,7 +122,7 @@ const DemandeDetail = () => {
       const { data, error } = await supabase.functions.invoke("send-document-request", {
         body: {
           demandeId: demande.id,
-          clientName: demande.clientName,
+          clientName: demande.client_name,
           clientEmail: demande.email,
         },
       });
@@ -116,11 +162,11 @@ const DemandeDetail = () => {
 
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{demande.clientName}</h1>
-            <p className="text-muted-foreground mt-2">Demande {demande.id}</p>
+            <h1 className="text-3xl font-bold tracking-tight">{demande.client_name}</h1>
+            <p className="text-muted-foreground mt-2">Demande {demande.id.substring(0, 8)}</p>
           </div>
-          <Badge variant={statusConfig[demande.status].variant} className="text-base px-4 py-2">
-            {statusConfig[demande.status].label}
+          <Badge variant={statusConfig[demande.status as DemandeStatus].variant} className="text-base px-4 py-2">
+            {statusConfig[demande.status as DemandeStatus].label}
           </Badge>
         </div>
 
@@ -170,7 +216,7 @@ const DemandeDetail = () => {
                 <FileText className="h-4 w-4 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">Type de crédit</p>
-                  <p className="font-medium">{creditTypeLabels[demande.creditType]}</p>
+                  <p className="font-medium">{creditTypeLabels[demande.credit_type as keyof typeof creditTypeLabels]}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -193,23 +239,23 @@ const DemandeDetail = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {demande.statusHistory.map((entry, index) => (
-                <div key={index} className="flex gap-4 items-start">
+              {statusHistory.map((entry, index) => (
+                <div key={entry.id} className="flex gap-4 items-start">
                   <div className="flex flex-col items-center">
                     <div className={`h-2 w-2 rounded-full ${
                       index === 0 ? 'bg-primary' : 'bg-muted-foreground'
                     }`} />
-                    {index < demande.statusHistory.length - 1 && (
+                    {index < statusHistory.length - 1 && (
                       <div className="w-px h-12 bg-border" />
                     )}
                   </div>
                   <div className="flex-1 pb-4">
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge variant={statusConfig[entry.status].variant}>
-                        {statusConfig[entry.status].label}
+                      <Badge variant={statusConfig[entry.status as DemandeStatus].variant}>
+                        {statusConfig[entry.status as DemandeStatus].label}
                       </Badge>
                       <span className="text-sm text-muted-foreground">
-                        {formatDate(entry.date)}
+                        {formatDate(entry.created_at)}
                       </span>
                     </div>
                     {entry.comment && (

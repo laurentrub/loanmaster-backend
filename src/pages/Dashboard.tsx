@@ -4,11 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockDemandes } from "@/data/mockDemandes";
 import { DemandeStatus, CreditType } from "@/types/credit";
 import { Eye, TrendingUp, Clock, CheckCircle, Search, Filter } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const statusConfig: Record<DemandeStatus, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   pending: { label: "En attente", variant: "secondary" },
@@ -30,25 +31,48 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [creditTypeFilter, setCreditTypeFilter] = useState<string>("all");
+  const [demandes, setDemandes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDemandes();
+  }, []);
+
+  const fetchDemandes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("demandes")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setDemandes(data || []);
+    } catch (error: any) {
+      console.error("Error fetching demandes:", error);
+      toast.error("Erreur lors du chargement des demandes");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredDemandes = useMemo(() => {
-    return mockDemandes.filter((demande) => {
+    return demandes.filter((demande) => {
       const matchesSearch = 
-        demande.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        demande.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         demande.id.toLowerCase().includes(searchQuery.toLowerCase());
       
       const matchesStatus = statusFilter === "all" || demande.status === statusFilter;
-      const matchesCreditType = creditTypeFilter === "all" || demande.creditType === creditTypeFilter;
+      const matchesCreditType = creditTypeFilter === "all" || demande.credit_type === creditTypeFilter;
       
       return matchesSearch && matchesStatus && matchesCreditType;
     });
-  }, [searchQuery, statusFilter, creditTypeFilter]);
+  }, [demandes, searchQuery, statusFilter, creditTypeFilter]);
 
   const stats = {
-    total: mockDemandes.length,
-    pending: mockDemandes.filter(d => d.status === "pending").length,
-    inReview: mockDemandes.filter(d => d.status === "in_review").length,
-    approved: mockDemandes.filter(d => d.status === "approved").length,
+    total: demandes.length,
+    pending: demandes.filter(d => d.status === "pending").length,
+    inReview: demandes.filter(d => d.status === "in_review").length,
+    approved: demandes.filter(d => d.status === "approved").length,
   };
 
   const formatAmount = (amount: number) => {
@@ -161,7 +185,11 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {filteredDemandes.length === 0 ? (
+              {loading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Chargement...
+                </div>
+              ) : filteredDemandes.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   Aucune demande ne correspond aux filtres sélectionnés
                 </div>
@@ -173,19 +201,19 @@ const Dashboard = () => {
                 >
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center gap-3">
-                      <p className="font-medium">{demande.clientName}</p>
-                      <Badge variant={statusConfig[demande.status].variant}>
-                        {statusConfig[demande.status].label}
+                      <p className="font-medium">{demande.client_name}</p>
+                      <Badge variant={statusConfig[demande.status as DemandeStatus].variant}>
+                        {statusConfig[demande.status as DemandeStatus].label}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{demande.id}</span>
+                      <span>{demande.id.substring(0, 8)}</span>
                       <span>•</span>
-                      <span>{creditTypeConfig[demande.creditType]}</span>
+                      <span>{creditTypeConfig[demande.credit_type as CreditType]}</span>
                       <span>•</span>
                       <span>{formatAmount(demande.amount)}</span>
                       <span>•</span>
-                      <span>{formatDate(demande.createdAt)}</span>
+                      <span>{formatDate(demande.created_at)}</span>
                     </div>
                   </div>
                   <Button
