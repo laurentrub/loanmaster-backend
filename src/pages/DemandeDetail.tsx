@@ -3,10 +3,14 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { mockDemandes } from "@/data/mockDemandes";
 import { DemandeStatus } from "@/types/credit";
-import { ArrowLeft, Mail, Phone, Calendar, Clock, Target, FileText } from "lucide-react";
+import { ArrowLeft, Mail, Phone, Calendar, Clock, Target, FileText, Save, FileCheck, FileSignature, RefreshCw, History } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 const statusConfig: Record<DemandeStatus, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   pending: { label: "En attente", variant: "secondary" },
@@ -15,10 +19,21 @@ const statusConfig: Record<DemandeStatus, { label: string; variant: "default" | 
   rejected: { label: "Refusé", variant: "destructive" },
 };
 
+const creditTypeLabels = {
+  immobilier: "Immobilier",
+  travaux: "Travaux",
+  vehicule: "Véhicule",
+  consommation: "Consommation",
+  autre: "Autre"
+};
+
 const DemandeDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const demande = mockDemandes.find(d => d.id === id);
+  const [notes, setNotes] = useState(demande?.internalNotes || "");
+  const [newStatus, setNewStatus] = useState<DemandeStatus | "">("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   if (!demande) {
     return (
@@ -51,12 +66,26 @@ const DemandeDetail = () => {
     });
   };
 
-  const handleApprove = () => {
-    toast.success("Demande approuvée");
+  const handleSaveNotes = () => {
+    toast.success("Notes internes enregistrées");
   };
 
-  const handleReject = () => {
-    toast.error("Demande refusée");
+  const handleRequestDocuments = () => {
+    toast.success("Email de demande de justificatifs envoyé au client");
+  };
+
+  const handleGenerateContract = () => {
+    toast.success("Contrat généré avec succès");
+  };
+
+  const handleChangeStatus = () => {
+    if (!newStatus) {
+      toast.error("Veuillez sélectionner un statut");
+      return;
+    }
+    toast.success(`Statut changé en ${statusConfig[newStatus].label}`);
+    setIsDialogOpen(false);
+    setNewStatus("");
   };
 
   return (
@@ -124,6 +153,13 @@ const DemandeDetail = () => {
               <div className="flex items-center gap-3">
                 <FileText className="h-4 w-4 text-muted-foreground" />
                 <div>
+                  <p className="text-sm text-muted-foreground">Type de crédit</p>
+                  <p className="font-medium">{creditTypeLabels[demande.creditType]}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <div>
                   <p className="text-sm text-muted-foreground">Motif</p>
                   <p className="font-medium">{demande.reason}</p>
                 </div>
@@ -133,38 +169,116 @@ const DemandeDetail = () => {
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Historique</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Historique des statuts
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-3 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Créée le</span>
-              <span className="font-medium">{formatDate(demande.createdAt)}</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Dernière mise à jour</span>
-              <span className="font-medium">{formatDate(demande.updatedAt)}</span>
+          <CardContent>
+            <div className="space-y-4">
+              {demande.statusHistory.map((entry, index) => (
+                <div key={index} className="flex gap-4 items-start">
+                  <div className="flex flex-col items-center">
+                    <div className={`h-2 w-2 rounded-full ${
+                      index === 0 ? 'bg-primary' : 'bg-muted-foreground'
+                    }`} />
+                    {index < demande.statusHistory.length - 1 && (
+                      <div className="w-px h-12 bg-border" />
+                    )}
+                  </div>
+                  <div className="flex-1 pb-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant={statusConfig[entry.status].variant}>
+                        {statusConfig[entry.status].label}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {formatDate(entry.date)}
+                      </span>
+                    </div>
+                    {entry.comment && (
+                      <p className="text-sm text-muted-foreground">{entry.comment}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
 
-        {demande.status === "in_review" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="flex gap-4">
-              <Button onClick={handleApprove} className="flex-1">
-                Approuver la demande
-              </Button>
-              <Button onClick={handleReject} variant="destructive" className="flex-1">
-                Refuser la demande
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle>Notes internes</CardTitle>
+            <Button size="sm" onClick={handleSaveNotes}>
+              <Save className="h-4 w-4 mr-2" />
+              Enregistrer
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <Textarea 
+              placeholder="Ajoutez des notes internes visibles uniquement par les administrateurs..."
+              className="min-h-[120px]"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Actions rapides</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-3">
+            <Button onClick={handleRequestDocuments} variant="outline">
+              <FileCheck className="h-4 w-4 mr-2" />
+              Demander justificatifs
+            </Button>
+            <Button onClick={handleGenerateContract} variant="outline">
+              <FileSignature className="h-4 w-4 mr-2" />
+              Générer contrat
+            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Changer statut
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Changer le statut de la demande</DialogTitle>
+                  <DialogDescription>
+                    Sélectionnez le nouveau statut pour la demande {demande.id}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Nouveau statut</label>
+                    <Select value={newStatus} onValueChange={(value) => setNewStatus(value as DemandeStatus)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionner un statut" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">En attente</SelectItem>
+                        <SelectItem value="in_review">En cours</SelectItem>
+                        <SelectItem value="approved">Approuvé</SelectItem>
+                        <SelectItem value="rejected">Refusé</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Annuler
+                  </Button>
+                  <Button onClick={handleChangeStatus}>
+                    Confirmer
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );
