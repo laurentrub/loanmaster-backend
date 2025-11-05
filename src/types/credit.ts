@@ -1,4 +1,5 @@
 export type DemandeStatus = "pending" | "in_review" | "approved" | "rejected";
+export type CreditType = "immobilier" | "travaux" | "vehicule" | "consommation" | "autre";
 
 export interface Demande {
   id: string;
@@ -7,6 +8,7 @@ export interface Demande {
   phone: string;
   amount: number;
   status: DemandeStatus;
+  creditType: CreditType;
   createdAt: string;
   updatedAt: string;
   reason: string;
