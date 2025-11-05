@@ -8,6 +8,7 @@ import DemandeDetail from "./pages/DemandeDetail";
 import Documents from "./pages/Documents";
 import Contrats from "./pages/Contrats";
 import Parametres from "./pages/Parametres";
+import JustificatifsUpload from "./pages/JustificatifsUpload";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
         <Route path="/documents" element={<Documents />} />
         <Route path="/contrats" element={<Contrats />} />
         <Route path="/parametres" element={<Parametres />} />
+        <Route path="/justificatifs/:token" element={<JustificatifsUpload />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

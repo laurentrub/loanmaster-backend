@@ -11,6 +11,7 @@ import { DemandeStatus } from "@/types/credit";
 import { ArrowLeft, Mail, Phone, Calendar, Clock, Target, FileText, Save, FileCheck, FileSignature, RefreshCw, History } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const statusConfig: Record<DemandeStatus, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
   pending: { label: "En attente", variant: "secondary" },
@@ -70,8 +71,23 @@ const DemandeDetail = () => {
     toast.success("Notes internes enregistrées");
   };
 
-  const handleRequestDocuments = () => {
-    toast.success("Email de demande de justificatifs envoyé au client");
+  const handleRequestDocuments = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("send-document-request", {
+        body: {
+          demandeId: demande.id,
+          clientName: demande.clientName,
+          clientEmail: demande.email,
+        },
+      });
+
+      if (error) throw error;
+      
+      toast.success("Email de demande de justificatifs envoyé au client");
+    } catch (error: any) {
+      console.error("Error sending document request:", error);
+      toast.error("Erreur lors de l'envoi de l'email");
+    }
   };
 
   const handleGenerateContract = () => {
