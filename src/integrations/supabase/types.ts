@@ -14,7 +14,166 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      demandes: {
+        Row: {
+          amount: number
+          client_name: string
+          created_at: string
+          credit_type: string
+          duration: number
+          email: string
+          id: string
+          internal_notes: string | null
+          phone: string
+          reason: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          client_name: string
+          created_at?: string
+          credit_type: string
+          duration: number
+          email: string
+          id?: string
+          internal_notes?: string | null
+          phone: string
+          reason: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_name?: string
+          created_at?: string
+          credit_type?: string
+          duration?: number
+          email?: string
+          id?: string
+          internal_notes?: string | null
+          phone?: string
+          reason?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      demandes_status_history: {
+        Row: {
+          comment: string | null
+          created_at: string
+          demande_id: string
+          id: string
+          status: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          demande_id: string
+          id?: string
+          status: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          demande_id?: string
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demandes_status_history_demande_id_fkey"
+            columns: ["demande_id"]
+            isOneToOne: false
+            referencedRelation: "demandes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          demande_id: string
+          expires_at: string
+          id: string
+          token: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          demande_id: string
+          expires_at: string
+          id?: string
+          token: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          demande_id?: string
+          expires_at?: string
+          id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_requests_demande_id_fkey"
+            columns: ["demande_id"]
+            isOneToOne: false
+            referencedRelation: "demandes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      uploaded_documents: {
+        Row: {
+          demande_id: string
+          document_request_id: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          uploaded_at: string
+        }
+        Insert: {
+          demande_id: string
+          document_request_id: string
+          document_type: string
+          file_name: string
+          file_path: string
+          file_size: number
+          id?: string
+          uploaded_at?: string
+        }
+        Update: {
+          demande_id?: string
+          document_request_id?: string
+          document_type?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "uploaded_documents_demande_id_fkey"
+            columns: ["demande_id"]
+            isOneToOne: false
+            referencedRelation: "demandes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "uploaded_documents_document_request_id_fkey"
+            columns: ["document_request_id"]
+            isOneToOne: false
+            referencedRelation: "document_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
