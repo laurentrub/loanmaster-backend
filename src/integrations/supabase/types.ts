@@ -200,6 +200,21 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      complete_document_request: {
+        Args: { request_token: string }
+        Returns: boolean
+      }
+      get_document_request_by_token: {
+        Args: { request_token: string }
+        Returns: {
+          completed_at: string
+          created_at: string
+          demande_id: string
+          expires_at: string
+          id: string
+          token: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
