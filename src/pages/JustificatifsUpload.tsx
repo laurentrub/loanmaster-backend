@@ -47,30 +47,24 @@ const JustificatifsUpload = () => {
   }, [token]);
 
   const checkTokenValidity = async () => {
+    if (!token) {
+      setIsValid(false);
+      setLoading(false);
+      return;
+    }
+
     try {
+      // Use secure RPC function to get document request by exact token (prevents enumeration)
       const { data, error } = await supabase
-        .from("document_requests")
-        .select("*, demandes(*)")
-        .eq("token", token)
-        .single();
+        .rpc("get_document_request_by_token", { request_token: token });
 
-      if (error || !data) {
+      if (error || !data || data.length === 0) {
         setIsValid(false);
         setLoading(false);
         return;
       }
 
-      // Vérifier si le token a expiré
-      const expiresAt = new Date(data.expires_at);
-      const now = new Date();
-      
-      if (now > expiresAt || data.completed_at !== null) {
-        setIsValid(false);
-        setLoading(false);
-        return;
-      }
-
-      setRequestData(data);
+      setRequestData(data[0]);
       setIsValid(true);
     } catch (error) {
       console.error("Error checking token:", error);
@@ -127,21 +121,16 @@ const JustificatifsUpload = () => {
     }
 
     try {
-      // Mettre à jour le statut de la demande de documents
-      const { error: updateError } = await supabase
-        .from("document_requests")
-        .update({ completed_at: new Date().toISOString() })
-        .eq("id", requestData.id);
+      // Use secure RPC function to complete the request (prevents direct table access)
+      const { data: success, error } = await supabase
+        .rpc("complete_document_request", { request_token: token });
 
-      if (updateError) throw updateError;
-
-      // Mettre à jour le statut de la demande
-      const { error: statusError } = await supabase
-        .from("demandes")
-        .update({ status: "in_review" })
-        .eq("id", requestData.demande_id);
-
-      if (statusError) throw statusError;
+      if (error) throw error;
+      
+      if (!success) {
+        toast.error("Le lien a expiré ou a déjà été utilisé");
+        return;
+      }
 
       setSubmitted(true);
       toast.success("Vos justificatifs ont bien été transmis");
