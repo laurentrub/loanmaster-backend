@@ -1,5 +1,5 @@
-import { Home, FileText, File, Settings, FileSignature } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { Home, FileText, File, Settings, FileSignature, LogOut } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -8,8 +8,11 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: Home },
@@ -21,6 +24,13 @@ const items = [
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const { signOut, user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/login");
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-sidebar-border">
@@ -59,6 +69,23 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      
+      <SidebarFooter className="border-t border-sidebar-border p-2">
+        {!collapsed && user && (
+          <p className="text-xs text-muted-foreground px-2 mb-2 truncate">
+            {user.email}
+          </p>
+        )}
+        <Button
+          variant="ghost"
+          size={collapsed ? "icon" : "default"}
+          onClick={handleSignOut}
+          className="w-full justify-start"
+        >
+          <LogOut className="h-4 w-4" />
+          {!collapsed && <span className="ml-2">Déconnexion</span>}
+        </Button>
+      </SidebarFooter>
     </Sidebar>
   );
 }
