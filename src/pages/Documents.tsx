@@ -38,8 +38,10 @@ import {
   Search, 
   FileText, 
   Image as ImageIcon,
-  Loader2 
+  Loader2,
+  ExternalLink
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -229,6 +231,7 @@ const Documents = () => {
                   <TableRow>
                     <TableHead>Nom du fichier</TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Demande</TableHead>
                     <TableHead>Taille</TableHead>
                     <TableHead>Date d'upload</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -258,6 +261,17 @@ const Documents = () => {
                         >
                           {documentTypeLabels[doc.document_type] || doc.document_type}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Link
+                          to={`/demande/${doc.demande_id}`}
+                          className="inline-flex items-center gap-1 text-primary hover:underline"
+                        >
+                          <span className="truncate max-w-[100px]">
+                            {doc.demande_id.slice(0, 8)}...
+                          </span>
+                          <ExternalLink className="h-3 w-3" />
+                        </Link>
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {formatFileSize(doc.file_size)}
