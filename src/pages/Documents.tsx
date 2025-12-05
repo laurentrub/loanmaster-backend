@@ -56,6 +56,9 @@ interface UploadedDocument {
   document_type: string;
   file_name: string;
   file_path: string;
+  demandes: {
+    client_name: string;
+  } | null;
 }
 
 const documentTypeLabels: Record<string, string> = {
@@ -101,7 +104,7 @@ const Documents = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("uploaded_documents")
-        .select("*")
+        .select("*, demandes(client_name)")
         .order("uploaded_at", { ascending: false });
 
       if (error) throw error;
@@ -190,7 +193,8 @@ const Documents = () => {
       doc.file_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       documentTypeLabels[doc.document_type]
         ?.toLowerCase()
-        .includes(searchTerm.toLowerCase())
+        .includes(searchTerm.toLowerCase()) ||
+      doc.demandes?.client_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -231,7 +235,7 @@ const Documents = () => {
                   <TableRow>
                     <TableHead>Nom du fichier</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Demande</TableHead>
+                    <TableHead>Client</TableHead>
                     <TableHead>Taille</TableHead>
                     <TableHead>Date d'upload</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -267,8 +271,8 @@ const Documents = () => {
                           to={`/demande/${doc.demande_id}`}
                           className="inline-flex items-center gap-1 text-primary hover:underline"
                         >
-                          <span className="truncate max-w-[100px]">
-                            {doc.demande_id.slice(0, 8)}...
+                          <span className="truncate max-w-[150px]">
+                            {doc.demandes?.client_name || "Client inconnu"}
                           </span>
                           <ExternalLink className="h-3 w-3" />
                         </Link>
